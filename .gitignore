@@ -1,0 +1,7 @@
+*/CMakeFiles
+*.cmake
+CMakeCache.txt
+Makefile
+DisplayImage
+MultiTracker
+SelectiveSearch
