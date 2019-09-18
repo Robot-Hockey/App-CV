@@ -5,3 +5,4 @@ Makefile
 DisplayImage
 MultiTracker
 SelectiveSearch
+ContourMatching
