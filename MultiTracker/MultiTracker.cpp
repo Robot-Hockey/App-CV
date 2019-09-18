@@ -107,7 +107,7 @@ void createTrackbars(){
 
   VideoCapture cap;
 
-  cap.open(deviceID + apiID)
+  cap.open(deviceID + apiID);
   cap.set(CAP_PROP_FPS, 120);
   cap.set(CAP_PROP_FRAME_WIDTH,320);
   cap.set(CAP_PROP_FRAME_HEIGHT,240);
