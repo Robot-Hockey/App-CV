@@ -69,25 +69,6 @@ int main( int argc, char** argv)
             break;
         }
     }
-
-    
-
-    // // Four corners of the book in source image
-    // vector<Point2f> pts_src;
-    // pts_src.push_back(Point2f(141, 131));
-    // pts_src.push_back(Point2f(480, 159));
-    // pts_src.push_back(Point2f(493, 630));
-    // pts_src.push_back(Point2f(64, 601));
- 
- 
-    // // Read destination image.
-    // Mat im_dst = imread("book1.jpg");
-    // // Four corners of the book in destination image.
-    // vector<Point2f> pts_dst;
-    // pts_dst.push_back(Point2f(318, 256));
-    // pts_dst.push_back(Point2f(534, 372));
-    // pts_dst.push_back(Point2f(316, 670));
-    // pts_dst.push_back(Point2f(73, 473));
  
     // Calculate Homography
     Mat h = findHomography(pts_src, pts_dst);
