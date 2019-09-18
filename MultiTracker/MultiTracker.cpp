@@ -19,12 +19,13 @@
  using namespace std;
  using namespace cv;
 
-int H_MIN = 0;
-int H_MAX = 256;
+int H_MIN = 83;
+int H_MAX = 119;
 int S_MIN = 126;
 int S_MAX = 256;
-int V_MIN = 78;
-int V_MAX = 157;
+int V_MIN = 0;
+int V_MAX = 83;
+
 //default capture width and height
 const int FRAME_WIDTH = 640;
 const int FRAME_HEIGHT = 480;
@@ -101,12 +102,15 @@ void createTrackbars(){
  
    // set input video
   //  std::string video = argv[1];
-  int deviceID = 1;             // 0 = open default camera
+  int deviceID = 2;             // 0 = open default camera
   int apiID = cv::CAP_ANY;      // 0 = autodetect default API
 
   VideoCapture cap;
 
-  cap.open(deviceID + apiID);
+  cap.open(deviceID + apiID)
+  cap.set(CAP_PROP_FPS, 120);
+  cap.set(CAP_PROP_FRAME_WIDTH,320);
+  cap.set(CAP_PROP_FRAME_HEIGHT,240);
  
    Mat frame, threshold;
 
