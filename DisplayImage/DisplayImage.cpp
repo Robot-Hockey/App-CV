@@ -11,7 +11,7 @@ int main(int, char**)
     VideoCapture cap;
     // open the default camera using default API
     // cap.open(0);
-    int deviceID = 0;             // 0 = open default camera
+    int deviceID = 2;             // 0 = open default camera
     int apiID = cv::CAP_ANY;      // 0 = autodetect default API
     cap.open(deviceID + apiID);
     if (!cap.isOpened()) {

@@ -46,7 +46,7 @@ int main(int argc, char **argv)
         tracker = TrackerCSRT::create();
         tracker2 = TrackerCSRT::create();}
     // Read video
-    int deviceID = 0;             // 0 = open default camera
+    int deviceID = 2;             // 0 = open default camera
     int apiID = cv::CAP_ANY;      // 0 = autodetect default API
 
     VideoCapture video;
