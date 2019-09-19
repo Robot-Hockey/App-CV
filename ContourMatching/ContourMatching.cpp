@@ -66,7 +66,7 @@ int main( int argc, char** argv )
         /// Create Window
         const char* source_window = "Source";
         namedWindow( source_window );
-        GaussianBlur(hsv, hsv, Size(27, 27), 0);
+        GaussianBlur(hsv, hsv, Size(31, 31), 0);
         imshow( "HSV", hsv );
 
         inRange(hsv,Scalar(H_MIN,S_MIN,V_MIN),Scalar(H_MAX,S_MAX,V_MAX),bin);
@@ -107,8 +107,14 @@ void thresh_callback(int, void* )
     Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
     for( size_t i = 0; i< contours.size(); i++ ){
         double area = cv::contourArea(contours[i]);
-        cout << area << endl;
         if(area >= min_area){
+            Rect br = boundingRect(contours[i]);
+            
+            double cx = br.x+br.width/2; 
+            double cy = br.y+br.height/2; 
+
+            circle(drawing, Point(cx, cy), 1, Scalar(0, 0, 256), 3);
+
             drawContours( drawing, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
         }
     }
