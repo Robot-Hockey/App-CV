@@ -18,12 +18,20 @@ Mat src_gray, hsv, bin;
 int thresh = 100;
 RNG rng(12345);
 
-int H_MIN = 83;
-int H_MAX = 119;
-int S_MIN = 126;
+// int H_MIN = 83;
+// int H_MAX = 119;
+// int S_MIN = 126;
+// int S_MAX = 256;
+// int V_MIN = 0;
+// int V_MAX = 83;
+
+
+int H_MIN = 4;
+int H_MAX = 12;
+int S_MIN = 221;
 int S_MAX = 256;
-int V_MIN = 0;
-int V_MAX = 83;
+int V_MIN = 71;
+int V_MAX = 228;
 
  // Convert to string
 #define SSTR( x ) static_cast< std::ostringstream & >( \
@@ -58,6 +66,7 @@ int main( int argc, char** argv )
         /// Create Window
         const char* source_window = "Source";
         namedWindow( source_window );
+        GaussianBlur(hsv, hsv, Size(27, 27), 0);
         imshow( "HSV", hsv );
 
         inRange(hsv,Scalar(H_MIN,S_MIN,V_MIN),Scalar(H_MAX,S_MAX,V_MAX),bin);
@@ -92,9 +101,16 @@ void thresh_callback(int, void* )
 
     /// Draw contours
 
+    double min_area = 100;
+    double max_area = 100;
+
     Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
     for( size_t i = 0; i< contours.size(); i++ ){
-        drawContours( drawing, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
+        double area = cv::contourArea(contours[i]);
+        cout << area << endl;
+        if(area >= min_area){
+            drawContours( drawing, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
+        }
     }
 
     /// Show in a window
