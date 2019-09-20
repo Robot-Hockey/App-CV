@@ -33,16 +33,75 @@ int S_MAX = 256;
 int V_MIN = 71;
 int V_MAX = 228;
 
+Point previous = Point(0, 0);
+Point infinite;
+double m, b;
+
  // Convert to string
 #define SSTR( x ) static_cast< std::ostringstream & >( \
 ( std::ostringstream() << std::dec << x ) ).str()
 
-/// Function header
-void thresh_callback(int, void* );
+double get_y(double m, double b, double x){
+    return m*x + b;
+}
 
-/**
- * @function main
- */
+void thresh_callback(int, void* )
+{
+    /// Detect edges using Canny
+    Mat canny_output;
+    Canny( bin, canny_output, thresh, thresh*2 );
+
+    /// Find contours
+    vector<vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    findContours( canny_output, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE );
+
+    /// Draw contours
+
+    double min_area = 100;
+    double max_area = 100;
+
+    Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
+    for( size_t i = 0; i< contours.size(); i++ ){
+        double area = cv::contourArea(contours[i]);
+        if(area >= min_area){
+            Rect br = boundingRect(contours[i]);
+            
+            double cx = br.x+br.width/2; 
+            double cy = br.y+br.height/2;
+
+            Point curr = Point(cx, cy);
+
+            if(hypot(curr.x-previous.x, curr.y-previous.y) > 3){
+                // Makes line algorithm (y = mx + b)
+                double den = (previous.x - curr.x);
+                if(fabs(den) < 1e-9){
+                    den = 0.001;
+                }
+                m = (previous.y - curr.y)/den;
+                b = (curr.y - m*curr.x);
+
+                double infinite_x = 2*curr.x;
+                double infinite_y = get_y(m, b, infinite_x);
+
+                infinite = Point(infinite_x, infinite_y);
+                // ...
+
+                previous = curr;
+            }
+
+            line(drawing, curr, infinite, Scalar(0, 0, 256), 3);
+
+            circle(drawing, curr, 1, Scalar(0, 0, 256), 5);
+
+            drawContours( drawing, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
+        }
+    }
+
+    /// Show in a window
+    imshow( "Contours", drawing );
+}
+
 int main( int argc, char** argv )
 {
     /// Load source image
@@ -71,6 +130,8 @@ int main( int argc, char** argv )
 
         inRange(hsv,Scalar(H_MIN,S_MIN,V_MIN),Scalar(H_MAX,S_MAX,V_MAX),bin);
 
+        imshow( "Binary", bin );
+
         const int max_thresh = 255;
         thresh_callback( 0, 0 );
         // Calculate Frames per second (FPS)
@@ -83,42 +144,4 @@ int main( int argc, char** argv )
     }
 
     return 0;
-}
-
-/**
- * @function thresh_callback
- */
-void thresh_callback(int, void* )
-{
-    /// Detect edges using Canny
-    Mat canny_output;
-    Canny( bin, canny_output, thresh, thresh*2 );
-
-    /// Find contours
-    vector<vector<Point> > contours;
-    vector<Vec4i> hierarchy;
-    findContours( canny_output, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE );
-
-    /// Draw contours
-
-    double min_area = 100;
-    double max_area = 100;
-
-    Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
-    for( size_t i = 0; i< contours.size(); i++ ){
-        double area = cv::contourArea(contours[i]);
-        if(area >= min_area){
-            Rect br = boundingRect(contours[i]);
-            
-            double cx = br.x+br.width/2; 
-            double cy = br.y+br.height/2; 
-
-            circle(drawing, Point(cx, cy), 1, Scalar(0, 0, 256), 3);
-
-            drawContours( drawing, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
-        }
-    }
-
-    /// Show in a window
-    imshow( "Contours", drawing );
 }
