@@ -33,6 +33,7 @@ double diff_m = 0;
 
 double cx {0}, cy {0};
 double ix {0}, iy {0};
+double reb_x {0}, reb_y {0};
 
 bool reflects;
 
@@ -63,13 +64,17 @@ void thresh_callback(int, void* )
 
     /// Draw contours
 
-    double min_area = 0;
-    double max_area = 100000000;
+    double min_area = 100;
+    double max_area = 600;
+    double intermediate_area = 270;
 
     Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
     for( size_t i = 0; i< contours.size(); i++ ){
         double area = cv::contourArea(contours[i]);
-        if(area >= min_area){
+
+        // cout << i << " " << area << endl;
+
+        if(area >= intermediate_area && area <= max_area){
             Rect br = boundingRect(contours[i]);
             
             cx = br.x+br.width/2; 
@@ -154,13 +159,26 @@ void thresh_callback(int, void* )
                 line(drawing, reflection_point, infinite_reflection_point, Scalar(256, 0, 0), 3); // Reflected trajectory (Blue)
             }
 
-            line(drawing, Point(540, 0), Point(540, 480), Scalar(0, 256, 0), 2); // Attack line (Green)
+            line(drawing, Point(510, 0), Point(510, 480), Scalar(0, 256, 0), 2); // Attack line (Green)
 
             circle(drawing, curr, 1, Scalar(0, 0, 256), 5);
 
             drawContours( drawing, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
+        }else if(area >= min_area && area < intermediate_area){
+            Rect br = boundingRect(contours[i]);
+            
+            reb_x = br.x+br.width/2; 
+            reb_y = br.y+br.height/2;
+
+            Point reb = Point(reb_x, reb_y);
+
+            circle(drawing, reb, 1, Scalar(0, 256, 0), 2);
+
+            drawContours( drawing, contours, (int)i, Scalar(0, 0, 256), 2, LINE_8, hierarchy, 0 );
         }
     }
+
+    // cout << "=============" << endl;
 
     /// Show in a window
     imshow( "Contours", drawing );
