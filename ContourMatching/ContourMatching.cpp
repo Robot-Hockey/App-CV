@@ -25,8 +25,16 @@ int S_MAX = 256;
 int V_MIN = 71;
 int V_MAX = 228;
 
+int ATTACK_X = 500;
+double MIN_DISTANCE_TO_POI = 100;
+int MIN_X_DISTANCE_TO_POI = 30;
+int MIN_Y_DISTANCE_TO_POI = 40;
+
+bool should_move_goalie_x = false;
+bool should_move_goalie_y = false;
+
 Point previous = Point(0, 0);
-Point infinite, reflection_point, infinite_reflection_point;
+Point infinite, reflection_point, infinite_reflection_point, point_of_interest, goalie;
 double m, b, rm, rb;
 
 double diff_m = 0;
@@ -139,7 +147,7 @@ void thresh_callback(int, void* )
                     );
 
                     rm = -m;
-                    rb = b = (reflection_point.y - rm*reflection_point.x);
+                    rb = (reflection_point.y - rm*reflection_point.x);
 
                     infinite_reflection_point = Point(
                         infinite.x,
@@ -159,7 +167,7 @@ void thresh_callback(int, void* )
                 line(drawing, reflection_point, infinite_reflection_point, Scalar(256, 0, 0), 3); // Reflected trajectory (Blue)
             }
 
-            line(drawing, Point(510, 0), Point(510, 480), Scalar(0, 256, 0), 2); // Attack line (Green)
+            line(drawing, Point(ATTACK_X, 0), Point(ATTACK_X, 480), Scalar(0, 256, 0), 2); // Attack line (Green)
 
             circle(drawing, curr, 1, Scalar(0, 0, 256), 5);
 
@@ -170,15 +178,64 @@ void thresh_callback(int, void* )
             reb_x = br.x+br.width/2; 
             reb_y = br.y+br.height/2;
 
-            Point reb = Point(reb_x, reb_y);
+            goalie = Point(reb_x, reb_y);
 
-            circle(drawing, reb, 1, Scalar(0, 256, 0), 2);
+            circle(drawing, goalie, 1, Scalar(0, 256, 0), 60);
 
-            drawContours( drawing, contours, (int)i, Scalar(0, 0, 256), 2, LINE_8, hierarchy, 0 );
+            // drawContours( drawing, contours, (int)i, Scalar(0, 0, 256), 2, LINE_8, hierarchy, 0 );
         }
     }
 
     // cout << "=============" << endl;
+
+
+    // Point of interest
+    double interest_m, interest_b;
+
+    if(reflects && (reflection_point.x <= ATTACK_X)){
+        interest_m = rm;
+        interest_b = rb;
+    }else{
+        interest_m = m;
+        interest_b = b;
+    }
+
+    point_of_interest = Point(
+        ATTACK_X,
+        get_y(interest_m, interest_b, ATTACK_X)
+    );
+
+    circle(drawing, point_of_interest, 1, Scalar(256, 0, 256), 20);
+
+    line(drawing, point_of_interest, goalie, Scalar(256, 0, 256), 1);
+
+    // Move goalie
+
+    double curr_dist = hypot(goalie.x - point_of_interest.x, goalie.y - point_of_interest.y);
+    int x_diff = abs(goalie.x - point_of_interest.x);
+    int y_diff = abs(goalie.y - point_of_interest.y);
+
+    // if(curr_dist > MIN_DISTANCE_TO_POI){
+    //     putText(drawing, "DIST: " + SSTR(double(curr_dist)), Point(100,50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(256,50,256), 2);
+    // }else{
+    //     putText(drawing, "DIST: " + SSTR(double(curr_dist)) + " OK", Point(100,50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50,170,50), 2);
+    // }
+
+    if(x_diff > MIN_X_DISTANCE_TO_POI){
+        should_move_goalie_x = true;
+        putText(drawing, "X_DIST: " + SSTR(int(x_diff)), Point(100,50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(256,50,256), 2);
+    }else{
+        should_move_goalie_x = false;
+        putText(drawing, "X_DIST: " + SSTR(int(x_diff)) + " OK", Point(100,50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50,170,50), 2);
+    }
+
+    if(y_diff > MIN_Y_DISTANCE_TO_POI){
+        should_move_goalie_y = true;
+        putText(drawing, "Y_DIST: " + SSTR(int(y_diff)), Point(100,100), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(256,50,256), 2);
+    }else{
+        should_move_goalie_y = false;
+        putText(drawing, "Y_DIST: " + SSTR(int(y_diff)) + " OK", Point(100,100), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50,170,50), 2);
+    }
 
     /// Show in a window
     imshow( "Contours", drawing );
