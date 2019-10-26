@@ -73,13 +73,16 @@ bool mySerial::Send( unsigned char  * data,int len)
 
 bool mySerial::Send( unsigned char value)
 {
+   cout << "hahgahaa" << endl;
    if(!IsOpen()) return false;
    int rlen= write(handle,&value,1);
+   cout << rlen << endl; 
    return(rlen == 1);
 }
 
 bool mySerial::Send(std::string value)
 {
+   cout << "hahgahaa" << endl;
    if(!IsOpen()) return false;
    int rlen= write(handle,value.c_str(),value.size());
    cout << rlen << endl; 

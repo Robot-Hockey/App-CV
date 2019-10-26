@@ -12,14 +12,18 @@ int  main(void)
 
     // One Byte At the time
     cout << "Sending 1" << endl;
-    char one {1}, zero {0};
-    char* str1[] = "1,1,1,1,1";
-    serial.Send(str1);
+    while(1){
+        serial.Send("1");
 
-    sleep(3);
+        usleep(50000);
 
-    cout << "Sending 0" << endl;
-    serial.Send("0,0,0,0,0");
+        serial.Send("2");
+
+        usleep(50000);
+    }
+
+    // cout << "Sending 0" << endl;
+    // serial.Send(0);
     // serial.Send(132);
 
     // An array of byte
