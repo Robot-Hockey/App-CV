@@ -11,8 +11,13 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/video.hpp>
 
+#include "mySerial.h"
+#include "unistd.h"
+
 using namespace cv;
 using namespace std;
+
+string serial_code = "";
 
 Mat src_gray, hsv, bin;
 int thresh = 100;
@@ -32,6 +37,9 @@ int MIN_Y_DISTANCE_TO_POI = 40;
 
 bool should_move_goalie_x = false;
 bool should_move_goalie_y = false;
+
+bool y_clockwise = false;
+bool x_clockwise = false;
 
 Point previous = Point(0, 0);
 Point infinite, reflection_point, infinite_reflection_point, point_of_interest, goalie;
@@ -57,6 +65,24 @@ double get_y(double m, double b, double x){
 
 double get_x(double m, double b, double y){
     return (y-b)/m;
+}
+
+string get_serial_code(){
+    string s = "";
+
+    if(should_move_goalie_x) s+='1';
+    else s+='0';
+
+    if(x_clockwise) s+='1';
+    else s+='0';
+
+    if(should_move_goalie_y) s+='1';
+    else s+='0';
+
+    if(y_clockwise) s+='1';
+    else s+='0';
+
+    return s;
 }
 
 void thresh_callback(int, void* )
@@ -212,8 +238,18 @@ void thresh_callback(int, void* )
     // Move goalie
 
     double curr_dist = hypot(goalie.x - point_of_interest.x, goalie.y - point_of_interest.y);
-    int x_diff = abs(goalie.x - point_of_interest.x);
-    int y_diff = abs(goalie.y - point_of_interest.y);
+    int x_diff = goalie.x - point_of_interest.x;
+    int y_diff = goalie.y - point_of_interest.y;
+
+    // Logic to set serial string
+
+    // positive x -> moves anti clockwise, negative x -> moves clockwise
+    if(x_diff > 0) x_clockwise = true;
+    else x_clockwise = false;
+
+    // positive y -> moves anti clockwise, negative y -> moves clockwise
+    if(y_diff > 0) y_clockwise = true;
+    else y_clockwise = false;
 
     // if(curr_dist > MIN_DISTANCE_TO_POI){
     //     putText(drawing, "DIST: " + SSTR(double(curr_dist)), Point(100,50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(256,50,256), 2);
@@ -247,6 +283,8 @@ int main( int argc, char** argv )
     Mat src;
     int deviceID = 2;             // 0 = open default camera
     int apiID = cv::CAP_ANY;      // 0 = autodetect default API
+
+    mySerial serial("/dev/stdout", 9600);
 
     VideoCapture cap;
 
@@ -283,6 +321,15 @@ int main( int argc, char** argv )
         putText(src, "DIFF M: " + SSTR(double(diff_m)), Point(100,200), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50,170,50), 2);
         imshow( source_window, src );
 
+        // cout << get_serial_code() << endl;
+
+        
+        string tmp_serial_code = get_serial_code();
+
+        if(tmp_serial_code != serial_code){
+            serial_code = tmp_serial_code;
+            serial.Send(serial_code);
+        }
 
         if(waitKey(1)==27)break;
     }

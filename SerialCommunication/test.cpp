@@ -3,8 +3,6 @@
 #include "unistd.h"
 using namespace std;
 
-
-
 int  main(void)
 {
 
@@ -13,13 +11,15 @@ int  main(void)
     // One Byte At the time
     cout << "Sending 1" << endl;
     while(1){
-        serial.Send("1");
+        string s;
+        cin >> s;
+        
+        serial.Send(s);
 
-        usleep(50000);
+        // usleep(100000);
 
-        serial.Send("2");
+        // serial.Send("0000");
 
-        usleep(50000);
     }
 
     // cout << "Sending 0" << endl;
