@@ -7,6 +7,7 @@
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
+#include "opencv2/opencv.hpp"
 #include <iostream>
 #include <opencv2/videoio.hpp>
 #include <opencv2/video.hpp>
@@ -16,6 +17,9 @@
 
 using namespace cv;
 using namespace std;
+
+vector<Point2f> pts_src;
+vector<Point2f> pts_dst;
 
 string serial_code = "";
 
@@ -83,6 +87,24 @@ string get_serial_code(){
     else s+='0';
 
     return s;
+}
+
+void CallBackFunc(int event, int x, int y, int flags, void* userdata){
+     if  ( event == EVENT_LBUTTONDOWN ){
+          cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+          pts_src.push_back(Point2f(x, y));
+     }
+     else if  ( event == EVENT_RBUTTONDOWN ){
+        //   cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+        //   pts_dst.push_back(Point2f(x, y));
+     }
+     else if  ( event == EVENT_MBUTTONDOWN ){
+        //   cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << endl;
+     }
+     else if ( event == EVENT_MOUSEMOVE ){
+        //   cout << "Mouse move over the window - position (" << x << ", " << y << ")" << endl;
+
+     }
 }
 
 void thresh_callback(int, void* )
@@ -279,12 +301,17 @@ void thresh_callback(int, void* )
 
 int main( int argc, char** argv )
 {
+    pts_dst.push_back(Point2f(0, 0));
+    pts_dst.push_back(Point2f(480, 0));
+    pts_dst.push_back(Point2f(480, 640));
+    pts_dst.push_back(Point2f(0, 640));
+
     /// Load source image
     Mat src;
-    int deviceID = 2;             // 0 = open default camera
+    int deviceID = 0;             // 0 = open default camera
     int apiID = cv::CAP_ANY;      // 0 = autodetect default API
 
-    mySerial serial("/dev/stdout", 9600);
+    // mySerial serial("/dev/stdout", 9600);
 
     VideoCapture cap;
 
@@ -295,9 +322,36 @@ int main( int argc, char** argv )
     // cap.set(CAP_PROP_FRAME_WIDTH,320);
     // cap.set(CAP_PROP_FRAME_HEIGHT,240);
 
+    Mat im_src;
+
+    namedWindow("Surface", 1);
+
+    Rect r = Rect(100, 30, 200, 400);
+
+    setMouseCallback("Surface", CallBackFunc, NULL);
+
+    while(1){
+        cap.read(im_src);
+        imshow("Surface", im_src);
+        if (waitKey(5) == 27)
+            break;
+
+        if(pts_src.size() >= 4 && pts_dst.size() >= 4){
+            cap.read(im_src);
+            break;
+        }
+    }
+ 
+    // Calculate Homography
+    Mat h = findHomography(pts_src, pts_dst);
+ 
+    Mat tmpsrc;
+
     while(1){
         double timer = (double)getTickCount();
-        cap >> src;
+        cap >> tmpsrc;
+
+        warpPerspective(tmpsrc, src, h, tmpsrc.size());
         /// Convert image to gray and blur it
         cvtColor( src, src_gray, COLOR_BGR2GRAY );
         cvtColor( src, hsv, COLOR_BGR2HSV );
@@ -306,11 +360,11 @@ int main( int argc, char** argv )
         const char* source_window = "Source";
         namedWindow( source_window );
         GaussianBlur(hsv, hsv, Size(31, 31), 0);
-        imshow( "HSV", hsv );
+        // imshow( "HSV", hsv );
 
         inRange(hsv,Scalar(H_MIN,S_MIN,V_MIN),Scalar(H_MAX,S_MAX,V_MAX),bin);
 
-        imshow( "Binary", bin );
+        // imshow( "Binary", bin );
 
         const int max_thresh = 255;
         thresh_callback( 0, 0 );
@@ -324,12 +378,12 @@ int main( int argc, char** argv )
         // cout << get_serial_code() << endl;
 
         
-        string tmp_serial_code = get_serial_code();
+        // string tmp_serial_code = get_serial_code();
 
-        if(tmp_serial_code != serial_code){
-            serial_code = tmp_serial_code;
-            serial.Send(serial_code);
-        }
+        // if(tmp_serial_code != serial_code){
+        //     serial_code = tmp_serial_code;
+        //     serial.Send(serial_code);
+        // }
 
         if(waitKey(1)==27)break;
     }
