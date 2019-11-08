@@ -74,17 +74,19 @@ double get_x(double m, double b, double y){
 string get_serial_code(){
     string s = "";
 
-    if(should_move_goalie_x) s+='1';
-    else s+='0';
+    if(should_move_goalie_x){
+        if(x_clockwise) s+='1';
+        else s+='2';
+    }else{
+        s+='0';
+    }
 
-    if(x_clockwise) s+='1';
-    else s+='0';
-
-    if(should_move_goalie_y) s+='1';
-    else s+='0';
-
-    if(y_clockwise) s+='1';
-    else s+='0';
+    if(should_move_goalie_y){
+        if(y_clockwise) s+='1';
+        else s+='2';
+    }else{
+        s+='0';
+    }
 
     return s;
 }
