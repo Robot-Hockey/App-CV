@@ -19,12 +19,19 @@
  using namespace std;
  using namespace cv;
 
-int H_MIN = 83;
-int H_MAX = 119;
-int S_MIN = 126;
+// int H_MIN = 83;
+// int H_MAX = 119;
+// int S_MIN = 126;
+// int S_MAX = 256;
+// int V_MIN = 0;
+// int V_MAX = 83;
+
+int H_MIN = 0;
+int H_MAX = 256;
+int S_MIN = 0;
 int S_MAX = 256;
 int V_MIN = 0;
-int V_MAX = 83;
+int V_MAX = 256;
 
 //default capture width and height
 const int FRAME_WIDTH = 640;
@@ -108,9 +115,9 @@ void createTrackbars(){
   VideoCapture cap;
 
   cap.open(deviceID + apiID);
-  cap.set(CAP_PROP_FPS, 120);
-  cap.set(CAP_PROP_FRAME_WIDTH,320);
-  cap.set(CAP_PROP_FRAME_HEIGHT,240);
+  // cap.set(CAP_PROP_FPS, 120);
+  // cap.set(CAP_PROP_FRAME_WIDTH,320);
+  // cap.set(CAP_PROP_FRAME_HEIGHT,240);
  
    Mat frame, threshold;
 
