@@ -167,7 +167,7 @@ void createGoalieTrackbars(){
 void findPuck(){
     /// Detect edges using Canny
     Mat canny_output;
-    cout << thresh << endl;
+    // cout << thresh << endl;
     Canny( puck_bin, canny_output, thresh, thresh*2 );
 
     /// Find contours
@@ -305,12 +305,12 @@ void findPuck(){
     circle(src, point_of_interest, 1, Scalar(256, 0, 256), 20);
     circle(drawing, point_of_interest, 1, Scalar(256, 0, 256), 20);
 
-    imshow( "Puck Contours", drawing );
+    // imshow( "Puck Contours", drawing );
 }
 
 void findGoalie(){
     Mat canny_output;
-    cout << thresh << endl;
+    // cout << thresh << endl;
     Canny( goalie_bin, canny_output, thresh, thresh*2 );
 
     /// Find contours
@@ -390,7 +390,7 @@ void findGoalie(){
     }
 
     /// Show in a window
-    imshow( "Goalie Contours", drawing );
+    // imshow( "Goalie Contours", drawing );
 }
 
 int main( int argc, char** argv )
@@ -415,10 +415,10 @@ int main( int argc, char** argv )
 
     cap.open(deviceID + apiID);
 
-    // cap.set(CAP_PROP_FPS, 60);
     cap.set(CAP_PROP_FPS, 60);
-    // cap.set(CAP_PROP_FRAME_WIDTH,640);
-    // cap.set(CAP_PROP_FRAME_HEIGHT,480);
+    // cap.set(CAP_PROP_FPS, 120);
+    // cap.set(CAP_PROP_FRAME_WIDTH,320);
+    // cap.set(CAP_PROP_FRAME_HEIGHT,240);
 
     Mat im_src;
 
@@ -455,10 +455,12 @@ int main( int argc, char** argv )
 
     while(1){
         double timer = (double)getTickCount();
-        // cap >> tmpsrc;
-        cap >> src;
+        cap >> tmpsrc;
+        // cap >> src;
 
-        // warpPerspective(tmpsrc, src, h, tmpsrc.size());
+        // resize(tmpsrc, tmpsrc, Size(640, 480));
+
+        warpPerspective(tmpsrc, src, h, tmpsrc.size());
         /// Convert image to gray and blur it
         cvtColor( src, src_gray, COLOR_BGR2GRAY );
         cvtColor( src, hsv, COLOR_BGR2HSV );
@@ -470,8 +472,8 @@ int main( int argc, char** argv )
         inRange(hsv, Scalar(H_MIN_PUCK, S_MIN_PUCK, V_MIN_PUCK), Scalar(H_MAX_PUCK, S_MAX_PUCK, V_MAX_PUCK), puck_bin);
         inRange(hsv, Scalar(H_MIN_GOALIE, S_MIN_GOALIE, V_MIN_GOALIE), Scalar(H_MAX_GOALIE, S_MAX_GOALIE, V_MAX_GOALIE), goalie_bin);
 
-        imshow( "Puck Binary", puck_bin );
-        imshow( "Goalie Binary", goalie_bin );
+        // imshow( "Puck Binary", puck_bin );
+        // imshow( "Goalie Binary", goalie_bin );
 
         const int max_thresh = 255;
         findPuck();
