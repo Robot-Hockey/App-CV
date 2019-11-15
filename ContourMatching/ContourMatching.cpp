@@ -24,20 +24,22 @@ vector<Point2f> pts_dst;
 string serial_code = "";
 
 Mat src_gray, hsv, bin;
+Mat src;
+
 int thresh = 100;
 RNG rng(12345);
 
-int H_MIN = 4;
-int H_MAX = 12;
-int S_MIN = 221;
-int S_MAX = 256;
-int V_MIN = 71;
-int V_MAX = 228;
+int H_MIN = 0;
+int H_MAX = 14;
+int S_MIN = 172;
+int S_MAX = 243;
+int V_MIN = 109;
+int V_MAX = 189;
 
 int ATTACK_X = 500;
 double MIN_DISTANCE_TO_POI = 100;
-int MIN_X_DISTANCE_TO_POI = 30;
-int MIN_Y_DISTANCE_TO_POI = 40;
+int MIN_X_DISTANCE_TO_POI = 25;
+int MIN_Y_DISTANCE_TO_POI = 25;
 
 bool should_move_goalie_x = false;
 bool should_move_goalie_y = false;
@@ -74,12 +76,12 @@ double get_x(double m, double b, double y){
 string get_serial_code(){
     string s = "";
 
-    if(should_move_goalie_x){
-        if(x_clockwise) s+='1';
-        else s+='2';
-    }else{
-        s+='0';
-    }
+    // if(should_move_goalie_x){
+    //     if(x_clockwise) s+='1';
+    //     else s+='2';
+    // }else{
+    //     s+='0';
+    // }
 
     if(should_move_goalie_y){
         if(y_clockwise) s+='1';
@@ -87,6 +89,8 @@ string get_serial_code(){
     }else{
         s+='0';
     }
+
+    // cout << s << endl;
 
     return s;
 }
@@ -122,17 +126,18 @@ void thresh_callback(int, void* )
 
     /// Draw contours
 
-    double min_area = 100;
-    double max_area = 600;
-    double intermediate_area = 270;
+    double min_goalie_area = 301;
+    double max_goalie_area = 3000;
+    double min_puck_area = 20;
+    double max_puck_area = 300;
 
     Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
     for( size_t i = 0; i< contours.size(); i++ ){
         double area = cv::contourArea(contours[i]);
+        drawContours( drawing, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
+        cout << i << " " << area << endl;
 
-        // cout << i << " " << area << endl;
-
-        if(area >= intermediate_area && area <= max_area){
+        if(area >= min_puck_area && area <= max_puck_area){
             Rect br = boundingRect(contours[i]);
             
             cx = br.x+br.width/2; 
@@ -211,18 +216,20 @@ void thresh_callback(int, void* )
                 previous = curr;
             }
 
+            line(src, curr, infinite, Scalar(0, 0, 256), 3);
             line(drawing, curr, infinite, Scalar(0, 0, 256), 3); // First part of trajectory (Red)
 
             if(reflects){
+                line(src, reflection_point, infinite_reflection_point, Scalar(256, 0, 0), 3);
                 line(drawing, reflection_point, infinite_reflection_point, Scalar(256, 0, 0), 3); // Reflected trajectory (Blue)
             }
 
-            line(drawing, Point(ATTACK_X, 0), Point(ATTACK_X, 480), Scalar(0, 256, 0), 2); // Attack line (Green)
 
+            circle(src, curr, 1, Scalar(0, 0, 256), 5);
             circle(drawing, curr, 1, Scalar(0, 0, 256), 5);
 
-            drawContours( drawing, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
-        }else if(area >= min_area && area < intermediate_area){
+            // drawContours( drawing, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
+        }else if(area >= min_goalie_area && area <= max_goalie_area){
             Rect br = boundingRect(contours[i]);
             
             reb_x = br.x+br.width/2; 
@@ -230,6 +237,7 @@ void thresh_callback(int, void* )
 
             goalie = Point(reb_x, reb_y);
 
+            circle(src, goalie, 1, Scalar(0, 256, 0), 60);
             circle(drawing, goalie, 1, Scalar(0, 256, 0), 60);
 
             // drawContours( drawing, contours, (int)i, Scalar(0, 0, 256), 2, LINE_8, hierarchy, 0 );
@@ -238,6 +246,8 @@ void thresh_callback(int, void* )
 
     // cout << "=============" << endl;
 
+    line(src, Point(ATTACK_X, 0), Point(ATTACK_X, 480), Scalar(0, 256, 0), 2);
+    line(drawing, Point(ATTACK_X, 0), Point(ATTACK_X, 480), Scalar(0, 256, 0), 2); // Attack line (Green)
 
     // Point of interest
     double interest_m, interest_b;
@@ -255,8 +265,15 @@ void thresh_callback(int, void* )
         get_y(interest_m, interest_b, ATTACK_X)
     );
 
+    if(point_of_interest.y <= 0 || point_of_interest.y >= 480 || goalie.x < cx || infinite.x == 0){
+        point_of_interest.y = 240;
+        point_of_interest.x = ATTACK_X + 40;
+    }
+
+    circle(src, point_of_interest, 1, Scalar(256, 0, 256), 20);
     circle(drawing, point_of_interest, 1, Scalar(256, 0, 256), 20);
 
+    line(src, point_of_interest, goalie, Scalar(256, 0, 256), 1);
     line(drawing, point_of_interest, goalie, Scalar(256, 0, 256), 1);
 
     // Move goalie
@@ -272,8 +289,8 @@ void thresh_callback(int, void* )
     else x_clockwise = false;
 
     // positive y -> moves anti clockwise, negative y -> moves clockwise
-    if(y_diff > 0) y_clockwise = true;
-    else y_clockwise = false;
+    if(y_diff > 0) y_clockwise = false;
+    else y_clockwise = true;
 
     // if(curr_dist > MIN_DISTANCE_TO_POI){
     //     putText(drawing, "DIST: " + SSTR(double(curr_dist)), Point(100,50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(256,50,256), 2);
@@ -281,7 +298,7 @@ void thresh_callback(int, void* )
     //     putText(drawing, "DIST: " + SSTR(double(curr_dist)) + " OK", Point(100,50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50,170,50), 2);
     // }
 
-    if(x_diff > MIN_X_DISTANCE_TO_POI){
+    if(abs(x_diff) > MIN_X_DISTANCE_TO_POI){
         should_move_goalie_x = true;
         putText(drawing, "X_DIST: " + SSTR(int(x_diff)), Point(100,50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(256,50,256), 2);
     }else{
@@ -289,7 +306,7 @@ void thresh_callback(int, void* )
         putText(drawing, "X_DIST: " + SSTR(int(x_diff)) + " OK", Point(100,50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50,170,50), 2);
     }
 
-    if(y_diff > MIN_Y_DISTANCE_TO_POI){
+    if(abs(y_diff) > MIN_Y_DISTANCE_TO_POI){
         should_move_goalie_y = true;
         putText(drawing, "Y_DIST: " + SSTR(int(y_diff)), Point(100,100), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(256,50,256), 2);
     }else{
@@ -303,46 +320,50 @@ void thresh_callback(int, void* )
 
 int main( int argc, char** argv )
 {
+    pts_dst.push_back(Point2f(640, 480));
+    pts_dst.push_back(Point2f(0, 480));
     pts_dst.push_back(Point2f(0, 0));
-    pts_dst.push_back(Point2f(480, 0));
-    pts_dst.push_back(Point2f(480, 640));
-    pts_dst.push_back(Point2f(0, 640));
+    pts_dst.push_back(Point2f(640, 0));
+
+    pts_src.push_back(Point2f(12, 460));
+    pts_src.push_back(Point2f(147, 28));
+    pts_src.push_back(Point2f(412, 19));
+    pts_src.push_back(Point2f(584, 441));
 
     /// Load source image
-    Mat src;
-    int deviceID = 0;             // 0 = open default camera
+    int deviceID = 2;             // 0 = open default camera
     int apiID = cv::CAP_ANY;      // 0 = autodetect default API
 
-    // mySerial serial("/dev/stdout", 9600);
+    mySerial serial("/dev/ttyUSB0", 9600);
 
     VideoCapture cap;
 
     cap.open(deviceID + apiID);
 
-    cap.set(CAP_PROP_FPS, 60);
-    // cap.set(CAP_PROP_FPS, 120);
-    // cap.set(CAP_PROP_FRAME_WIDTH,320);
-    // cap.set(CAP_PROP_FRAME_HEIGHT,240);
+    // cap.set(CAP_PROP_FPS, 60);
+    cap.set(CAP_PROP_FPS, 120);
+    // cap.set(CAP_PROP_FRAME_WIDTH,640);
+    // cap.set(CAP_PROP_FRAME_HEIGHT,480);
 
     Mat im_src;
 
-    namedWindow("Surface", 1);
+    // namedWindow("Surface", 1);
 
-    Rect r = Rect(100, 30, 200, 400);
+    // Rect r = Rect(100, 30, 200, 400);
 
-    setMouseCallback("Surface", CallBackFunc, NULL);
+    // setMouseCallback("Surface", CallBackFunc, NULL);
 
-    while(1){
-        cap.read(im_src);
-        imshow("Surface", im_src);
-        if (waitKey(5) == 27)
-            break;
+    // while(1){
+    //     cap.read(im_src);
+    //     imshow("Surface", im_src);
+    //     if (waitKey(5) == 27)
+    //         break;
 
-        if(pts_src.size() >= 4 && pts_dst.size() >= 4){
-            cap.read(im_src);
-            break;
-        }
-    }
+    //     if(pts_src.size() >= 4 && pts_dst.size() >= 4){
+    //         cap.read(im_src);
+    //         break;
+    //     }
+    // }
  
     // Calculate Homography
     Mat h = findHomography(pts_src, pts_dst);
@@ -362,6 +383,7 @@ int main( int argc, char** argv )
         const char* source_window = "Source";
         namedWindow( source_window );
         GaussianBlur(hsv, hsv, Size(31, 31), 0);
+        // GaussianBlur(hsv, hsv, Size(21, 21), 0);
         // imshow( "HSV", hsv );
 
         inRange(hsv,Scalar(H_MIN,S_MIN,V_MIN),Scalar(H_MAX,S_MAX,V_MAX),bin);
@@ -380,12 +402,12 @@ int main( int argc, char** argv )
         // cout << get_serial_code() << endl;
 
         
-        // string tmp_serial_code = get_serial_code();
+        string tmp_serial_code = get_serial_code();
 
-        // if(tmp_serial_code != serial_code){
-        //     serial_code = tmp_serial_code;
-        //     serial.Send(serial_code);
-        // }
+        if(tmp_serial_code != serial_code){
+            serial_code = tmp_serial_code;
+            serial.Send(serial_code);
+        }
 
         if(waitKey(1)==27)break;
     }
