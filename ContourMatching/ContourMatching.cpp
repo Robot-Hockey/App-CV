@@ -45,6 +45,7 @@ int V_MIN_GOALIE = 109;
 int V_MAX_GOALIE = 189;
 
 const string puckTrackbarWindowName = "Puck Trackbars";
+const string goalieTrackbarWindowName = "Goalie Trackbars";
 
 int ATTACK_X = 500;
 double MIN_DISTANCE_TO_POI = 100;
@@ -135,14 +136,32 @@ void createPuckTrackbars(){
 	sprintf( PuckTrackbarName, "V_MIN_PUCK", V_MIN_PUCK);
 	sprintf( PuckTrackbarName, "V_MAX_PUCK", V_MAX_PUCK);
 	  
-    createTrackbar( "H_MIN", puckTrackbarWindowName, &H_MIN_PUCK, 256 );
-    createTrackbar( "H_MAX", puckTrackbarWindowName, &H_MAX_PUCK, 256 );
-    createTrackbar( "S_MIN", puckTrackbarWindowName, &S_MIN_PUCK, 256 );
-    createTrackbar( "S_MAX", puckTrackbarWindowName, &S_MAX_PUCK, 256 );
-    createTrackbar( "V_MIN", puckTrackbarWindowName, &V_MIN_PUCK, 256 );
-    createTrackbar( "V_MAX", puckTrackbarWindowName, &V_MAX_PUCK, 256 );
+    createTrackbar( "H_MIN_PUCK", puckTrackbarWindowName, &H_MIN_PUCK, 256 );
+    createTrackbar( "H_MAX_PUCK", puckTrackbarWindowName, &H_MAX_PUCK, 256 );
+    createTrackbar( "S_MIN_PUCK", puckTrackbarWindowName, &S_MIN_PUCK, 256 );
+    createTrackbar( "S_MAX_PUCK", puckTrackbarWindowName, &S_MAX_PUCK, 256 );
+    createTrackbar( "V_MIN_PUCK", puckTrackbarWindowName, &V_MIN_PUCK, 256 );
+    createTrackbar( "V_MAX_PUCK", puckTrackbarWindowName, &V_MAX_PUCK, 256 );
+}
 
-
+void createGoalieTrackbars(){
+	//create window for trackbars
+    namedWindow(goalieTrackbarWindowName,0);
+	//create memory to store trackbar name on window
+	char GoalieTrackbarName[50];
+	sprintf( GoalieTrackbarName, "H_MIN_GOALIE", H_MIN_GOALIE);
+	sprintf( GoalieTrackbarName, "H_MAX_GOALIE", H_MAX_GOALIE);
+	sprintf( GoalieTrackbarName, "S_MIN_GOALIE", S_MIN_GOALIE);
+	sprintf( GoalieTrackbarName, "S_MAX_GOALIE", S_MAX_GOALIE);
+	sprintf( GoalieTrackbarName, "V_MIN_GOALIE", V_MIN_GOALIE);
+	sprintf( GoalieTrackbarName, "V_MAX_GOALIE", V_MAX_GOALIE);
+	  
+    createTrackbar( "H_MIN_GOALIE", goalieTrackbarWindowName, &H_MIN_GOALIE, 256 );
+    createTrackbar( "H_MAX_GOALIE", goalieTrackbarWindowName, &H_MAX_GOALIE, 256 );
+    createTrackbar( "S_MIN_GOALIE", goalieTrackbarWindowName, &S_MIN_GOALIE, 256 );
+    createTrackbar( "S_MAX_GOALIE", goalieTrackbarWindowName, &S_MAX_GOALIE, 256 );
+    createTrackbar( "V_MIN_GOALIE", goalieTrackbarWindowName, &V_MIN_GOALIE, 256 );
+    createTrackbar( "V_MAX_GOALIE", goalieTrackbarWindowName, &V_MAX_GOALIE, 256 );
 }
 
 void findPuck(){
@@ -158,10 +177,8 @@ void findPuck(){
 
     /// Draw contours
 
-    double min_goalie_area = 301;
-    double max_goalie_area = 3000;
     double min_puck_area = 20;
-    double max_puck_area = 300;
+    double max_puck_area = 2000;
 
     Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
     for( size_t i = 0; i< contours.size(); i++ ){
@@ -261,25 +278,8 @@ void findPuck(){
             circle(drawing, curr, 1, Scalar(0, 0, 256), 5);
 
             // drawContours( drawing, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
-        }else if(area >= min_goalie_area && area <= max_goalie_area){
-            Rect br = boundingRect(contours[i]);
-            
-            reb_x = br.x+br.width/2; 
-            reb_y = br.y+br.height/2;
-
-            goalie = Point(reb_x, reb_y);
-
-            circle(src, goalie, 1, Scalar(0, 256, 0), 60);
-            circle(drawing, goalie, 1, Scalar(0, 256, 0), 60);
-
-            // drawContours( drawing, contours, (int)i, Scalar(0, 0, 256), 2, LINE_8, hierarchy, 0 );
         }
     }
-
-    // cout << "=============" << endl;
-
-    line(src, Point(ATTACK_X, 0), Point(ATTACK_X, 480), Scalar(0, 256, 0), 2);
-    line(drawing, Point(ATTACK_X, 0), Point(ATTACK_X, 480), Scalar(0, 256, 0), 2); // Attack line (Green)
 
     // Point of interest
     double interest_m, interest_b;
@@ -305,11 +305,54 @@ void findPuck(){
     circle(src, point_of_interest, 1, Scalar(256, 0, 256), 20);
     circle(drawing, point_of_interest, 1, Scalar(256, 0, 256), 20);
 
+    imshow( "Puck Contours", drawing );
+}
+
+void findGoalie(){
+    Mat canny_output;
+    cout << thresh << endl;
+    Canny( goalie_bin, canny_output, thresh, thresh*2 );
+
+    /// Find contours
+    vector<vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    findContours( canny_output, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE );
+
+    /// Draw contours
+
+    double min_goalie_area = 0;
+    double max_goalie_area = 3000;
+
+    Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
+    for( size_t i = 0; i< contours.size(); i++ ){
+        double area = cv::contourArea(contours[i]);
+        drawContours( goalie_bin, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
+        // cout << i << " " << area << endl;
+        
+        if(area >= min_goalie_area && area <= max_goalie_area){
+            Rect br = boundingRect(contours[i]);
+            
+            reb_x = br.x+br.width/2; 
+            reb_y = br.y+br.height/2;
+
+            goalie = Point(reb_x, reb_y);
+
+            circle(src, goalie, 1, Scalar(0, 256, 0), 60);
+            circle(drawing, goalie, 1, Scalar(0, 256, 0), 60);
+
+            // drawContours( drawing, contours, (int)i, Scalar(0, 0, 256), 2, LINE_8, hierarchy, 0 );
+        }
+    }
+
+    // cout << "=============" << endl;
+
+    line(src, Point(ATTACK_X, 0), Point(ATTACK_X, 480), Scalar(0, 256, 0), 2);
+    line(drawing, Point(ATTACK_X, 0), Point(ATTACK_X, 480), Scalar(0, 256, 0), 2); // Attack line (Green)
+
     line(src, point_of_interest, goalie, Scalar(256, 0, 256), 1);
     line(drawing, point_of_interest, goalie, Scalar(256, 0, 256), 1);
 
     // Move goalie
-
     double curr_dist = hypot(goalie.x - point_of_interest.x, goalie.y - point_of_interest.y);
     int x_diff = goalie.x - point_of_interest.x;
     int y_diff = goalie.y - point_of_interest.y;
@@ -347,7 +390,7 @@ void findPuck(){
     }
 
     /// Show in a window
-    imshow( "Contours", drawing );
+    imshow( "Goalie Contours", drawing );
 }
 
 int main( int argc, char** argv )
@@ -408,12 +451,14 @@ int main( int argc, char** argv )
     createTrackbar( "Min Threshold:", source_window, &thresh, max_canny_thresh );
 
     createPuckTrackbars();
+    createGoalieTrackbars();
 
     while(1){
         double timer = (double)getTickCount();
-        cap >> tmpsrc;
+        // cap >> tmpsrc;
+        cap >> src;
 
-        warpPerspective(tmpsrc, src, h, tmpsrc.size());
+        // warpPerspective(tmpsrc, src, h, tmpsrc.size());
         /// Convert image to gray and blur it
         cvtColor( src, src_gray, COLOR_BGR2GRAY );
         cvtColor( src, hsv, COLOR_BGR2HSV );
@@ -426,9 +471,11 @@ int main( int argc, char** argv )
         inRange(hsv, Scalar(H_MIN_GOALIE, S_MIN_GOALIE, V_MIN_GOALIE), Scalar(H_MAX_GOALIE, S_MAX_GOALIE, V_MAX_GOALIE), goalie_bin);
 
         imshow( "Puck Binary", puck_bin );
+        imshow( "Goalie Binary", goalie_bin );
 
         const int max_thresh = 255;
         findPuck();
+        findGoalie();
         // Calculate Frames per second (FPS)
         fps = getTickFrequency() / ((double)getTickCount() - timer);
         putText(src, "FPS: " + SSTR(int(fps)), Point(100,50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50,170,50), 2);
