@@ -30,19 +30,19 @@ int thresh = 100;
 int max_canny_thresh = 100;
 RNG rng(12345);
 
-int H_MIN_PUCK = 0;
-int H_MAX_PUCK = 14;
-int S_MIN_PUCK = 172;
-int S_MAX_PUCK = 243;
-int V_MIN_PUCK = 109;
-int V_MAX_PUCK = 189;
+int H_MIN_PUCK = 126;
+int H_MAX_PUCK = 196;
+int S_MIN_PUCK = 0;
+int S_MAX_PUCK = 229;
+int V_MIN_PUCK = 0;
+int V_MAX_PUCK = 256;
 
-int H_MIN_GOALIE = 0;
-int H_MAX_GOALIE = 14;
-int S_MIN_GOALIE = 172;
-int S_MAX_GOALIE = 243;
-int V_MIN_GOALIE = 109;
-int V_MAX_GOALIE = 189;
+int H_MIN_GOALIE = 85;
+int H_MAX_GOALIE = 128;
+int S_MIN_GOALIE = 143;
+int S_MAX_GOALIE = 256;
+int V_MIN_GOALIE = 103;
+int V_MAX_GOALIE = 168;
 
 const string puckTrackbarWindowName = "Puck Trackbars";
 const string goalieTrackbarWindowName = "Goalie Trackbars";
@@ -177,14 +177,16 @@ void findPuck(){
 
     /// Draw contours
 
-    double min_puck_area = 20;
+    double min_puck_area = 500;
     double max_puck_area = 2000;
 
+    bool found = false;
+
     Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
-    for( size_t i = 0; i< contours.size(); i++ ){
+    for( size_t i = 0; i< contours.size() && !found; i++ ){
         double area = cv::contourArea(contours[i]);
         drawContours( puck_bin, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
-        // cout << i << " " << area << endl;
+        // cout << i << "Puck " << area << endl;
 
         if(area >= min_puck_area && area <= max_puck_area){
             Rect br = boundingRect(contours[i]);
@@ -277,6 +279,8 @@ void findPuck(){
             circle(src, curr, 1, Scalar(0, 0, 256), 5);
             circle(drawing, curr, 1, Scalar(0, 0, 256), 5);
 
+            found = true;
+
             // drawContours( drawing, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
         }
     }
@@ -320,14 +324,16 @@ void findGoalie(){
 
     /// Draw contours
 
-    double min_goalie_area = 0;
+    double min_goalie_area = 200;
     double max_goalie_area = 3000;
 
+    bool found = false;
+
     Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
-    for( size_t i = 0; i< contours.size(); i++ ){
+    for( size_t i = 0; i< contours.size() && !found; i++ ){
         double area = cv::contourArea(contours[i]);
         drawContours( goalie_bin, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
-        // cout << i << " " << area << endl;
+        // cout << i << "Goalie " << area << endl;
         
         if(area >= min_goalie_area && area <= max_goalie_area){
             Rect br = boundingRect(contours[i]);
@@ -337,8 +343,7 @@ void findGoalie(){
 
             goalie = Point(reb_x, reb_y);
 
-            circle(src, goalie, 1, Scalar(0, 256, 0), 60);
-            circle(drawing, goalie, 1, Scalar(0, 256, 0), 60);
+            found = true;
 
             // drawContours( drawing, contours, (int)i, Scalar(0, 0, 256), 2, LINE_8, hierarchy, 0 );
         }
@@ -351,6 +356,9 @@ void findGoalie(){
 
     line(src, point_of_interest, goalie, Scalar(256, 0, 256), 1);
     line(drawing, point_of_interest, goalie, Scalar(256, 0, 256), 1);
+
+    circle(src, goalie, 1, Scalar(0, 256, 0), 60);
+    circle(drawing, goalie, 1, Scalar(0, 256, 0), 60);
 
     // Move goalie
     double curr_dist = hypot(goalie.x - point_of_interest.x, goalie.y - point_of_interest.y);
@@ -448,10 +456,10 @@ int main( int argc, char** argv )
     const char* source_window = "Source";
     namedWindow( source_window );
 
-    createTrackbar( "Min Threshold:", source_window, &thresh, max_canny_thresh );
+    createTrackbar( "Min Threshold:", source_window, &ATTACK_X, 640 );
 
     createPuckTrackbars();
-    createGoalieTrackbars();
+    // createGoalieTrackbars();
 
     while(1){
         double timer = (double)getTickCount();
@@ -472,7 +480,7 @@ int main( int argc, char** argv )
         inRange(hsv, Scalar(H_MIN_PUCK, S_MIN_PUCK, V_MIN_PUCK), Scalar(H_MAX_PUCK, S_MAX_PUCK, V_MAX_PUCK), puck_bin);
         inRange(hsv, Scalar(H_MIN_GOALIE, S_MIN_GOALIE, V_MIN_GOALIE), Scalar(H_MAX_GOALIE, S_MAX_GOALIE, V_MAX_GOALIE), goalie_bin);
 
-        // imshow( "Puck Binary", puck_bin );
+        imshow( "Puck Binary", puck_bin );
         // imshow( "Goalie Binary", goalie_bin );
 
         const int max_thresh = 255;
