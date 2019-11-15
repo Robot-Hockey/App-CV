@@ -23,18 +23,28 @@ vector<Point2f> pts_dst;
 
 string serial_code = "";
 
-Mat src_gray, hsv, bin;
+Mat src_gray, hsv, puck_bin, goalie_bin;
 Mat src;
 
 int thresh = 100;
+int max_canny_thresh = 100;
 RNG rng(12345);
 
-int H_MIN = 0;
-int H_MAX = 14;
-int S_MIN = 172;
-int S_MAX = 243;
-int V_MIN = 109;
-int V_MAX = 189;
+int H_MIN_PUCK = 0;
+int H_MAX_PUCK = 14;
+int S_MIN_PUCK = 172;
+int S_MAX_PUCK = 243;
+int V_MIN_PUCK = 109;
+int V_MAX_PUCK = 189;
+
+int H_MIN_GOALIE = 0;
+int H_MAX_GOALIE = 14;
+int S_MIN_GOALIE = 172;
+int S_MAX_GOALIE = 243;
+int V_MIN_GOALIE = 109;
+int V_MAX_GOALIE = 189;
+
+const string puckTrackbarWindowName = "Puck Trackbars";
 
 int ATTACK_X = 500;
 double MIN_DISTANCE_TO_POI = 100;
@@ -113,11 +123,33 @@ void CallBackFunc(int event, int x, int y, int flags, void* userdata){
      }
 }
 
-void thresh_callback(int, void* )
-{
+void createPuckTrackbars(){
+	//create window for trackbars
+    namedWindow(puckTrackbarWindowName,0);
+	//create memory to store trackbar name on window
+	char PuckTrackbarName[50];
+	sprintf( PuckTrackbarName, "H_MIN_PUCK", H_MIN_PUCK);
+	sprintf( PuckTrackbarName, "H_MAX_PUCK", H_MAX_PUCK);
+	sprintf( PuckTrackbarName, "S_MIN_PUCK", S_MIN_PUCK);
+	sprintf( PuckTrackbarName, "S_MAX_PUCK", S_MAX_PUCK);
+	sprintf( PuckTrackbarName, "V_MIN_PUCK", V_MIN_PUCK);
+	sprintf( PuckTrackbarName, "V_MAX_PUCK", V_MAX_PUCK);
+	  
+    createTrackbar( "H_MIN", puckTrackbarWindowName, &H_MIN_PUCK, 256 );
+    createTrackbar( "H_MAX", puckTrackbarWindowName, &H_MAX_PUCK, 256 );
+    createTrackbar( "S_MIN", puckTrackbarWindowName, &S_MIN_PUCK, 256 );
+    createTrackbar( "S_MAX", puckTrackbarWindowName, &S_MAX_PUCK, 256 );
+    createTrackbar( "V_MIN", puckTrackbarWindowName, &V_MIN_PUCK, 256 );
+    createTrackbar( "V_MAX", puckTrackbarWindowName, &V_MAX_PUCK, 256 );
+
+
+}
+
+void findPuck(){
     /// Detect edges using Canny
     Mat canny_output;
-    Canny( bin, canny_output, thresh, thresh*2 );
+    cout << thresh << endl;
+    Canny( puck_bin, canny_output, thresh, thresh*2 );
 
     /// Find contours
     vector<vector<Point> > contours;
@@ -134,8 +166,8 @@ void thresh_callback(int, void* )
     Mat drawing = Mat::zeros( canny_output.size(), CV_8UC3 );
     for( size_t i = 0; i< contours.size(); i++ ){
         double area = cv::contourArea(contours[i]);
-        drawContours( drawing, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
-        cout << i << " " << area << endl;
+        drawContours( puck_bin, contours, (int)i, Scalar(0, 256, 0), 2, LINE_8, hierarchy, 0 );
+        // cout << i << " " << area << endl;
 
         if(area >= min_puck_area && area <= max_puck_area){
             Rect br = boundingRect(contours[i]);
@@ -341,7 +373,7 @@ int main( int argc, char** argv )
     cap.open(deviceID + apiID);
 
     // cap.set(CAP_PROP_FPS, 60);
-    cap.set(CAP_PROP_FPS, 120);
+    cap.set(CAP_PROP_FPS, 60);
     // cap.set(CAP_PROP_FRAME_WIDTH,640);
     // cap.set(CAP_PROP_FRAME_HEIGHT,480);
 
@@ -370,6 +402,13 @@ int main( int argc, char** argv )
  
     Mat tmpsrc;
 
+    const char* source_window = "Source";
+    namedWindow( source_window );
+
+    createTrackbar( "Min Threshold:", source_window, &thresh, max_canny_thresh );
+
+    createPuckTrackbars();
+
     while(1){
         double timer = (double)getTickCount();
         cap >> tmpsrc;
@@ -379,19 +418,17 @@ int main( int argc, char** argv )
         cvtColor( src, src_gray, COLOR_BGR2GRAY );
         cvtColor( src, hsv, COLOR_BGR2HSV );
 
-        /// Create Window
-        const char* source_window = "Source";
-        namedWindow( source_window );
         GaussianBlur(hsv, hsv, Size(31, 31), 0);
         // GaussianBlur(hsv, hsv, Size(21, 21), 0);
         // imshow( "HSV", hsv );
 
-        inRange(hsv,Scalar(H_MIN,S_MIN,V_MIN),Scalar(H_MAX,S_MAX,V_MAX),bin);
+        inRange(hsv, Scalar(H_MIN_PUCK, S_MIN_PUCK, V_MIN_PUCK), Scalar(H_MAX_PUCK, S_MAX_PUCK, V_MAX_PUCK), puck_bin);
+        inRange(hsv, Scalar(H_MIN_GOALIE, S_MIN_GOALIE, V_MIN_GOALIE), Scalar(H_MAX_GOALIE, S_MAX_GOALIE, V_MAX_GOALIE), goalie_bin);
 
-        // imshow( "Binary", bin );
+        imshow( "Puck Binary", puck_bin );
 
         const int max_thresh = 255;
-        thresh_callback( 0, 0 );
+        findPuck();
         // Calculate Frames per second (FPS)
         fps = getTickFrequency() / ((double)getTickCount() - timer);
         putText(src, "FPS: " + SSTR(int(fps)), Point(100,50), FONT_HERSHEY_SIMPLEX, 0.75, Scalar(50,170,50), 2);
